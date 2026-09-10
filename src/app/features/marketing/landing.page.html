@@ -1,0 +1,133 @@
+<div class="page">
+  <header class="topbar">
+    <a routerLink="/" class="wordmark" aria-label="Auralis, inicio">
+      <span class="wordmark__mark"><app-icon name="wave" [size]="18" /></span>
+      Auralis
+    </a>
+    <nav class="topbar__nav">
+      <a href="#planes">Planes</a>
+      <a routerLink="/login">Entrar</a>
+      <a [routerLink]="ctaTarget()" class="btn btn--primary">{{ ctaLabel() }}</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="hero__copy">
+      <h1>Edita audio como en un estudio.</h1>
+      <p class="lede">
+        Sin salir del navegador. Auralis es una plataforma de edición no destructiva
+        con render en la nube: coloca clips en la línea de tiempo, encadena efectos
+        por pista y master, y exporta la mezcla o los stems cuando el job termina.
+      </p>
+      <div class="hero__cta">
+        <a [routerLink]="ctaTarget()" class="btn btn--primary btn--lg">
+          {{ ctaLabel() }} <app-icon name="arrow-right" [size]="17" />
+        </a>
+        <a href="#planes" class="btn btn--ghost btn--lg">Ver planes</a>
+      </div>
+      <dl class="hero__facts">
+        <div><dt>Motor</dt><dd>ffmpeg en un solo pase</dd></div>
+        <div><dt>Modelo</dt><dd>No destructivo + versiones</dd></div>
+        <div><dt>Salida</dt><dd>Mezcla y stems por pista</dd></div>
+      </dl>
+    </div>
+
+    <div class="deck" aria-hidden="true">
+      <div class="deck__bar">
+        <span class="deck__dot"></span><span class="deck__dot"></span><span class="deck__dot"></span>
+        <span class="deck__file">sesión — voz_principal.wav</span>
+        <span class="deck__time tnum">00:02:14</span>
+      </div>
+      <div class="deck__ruler">
+        @for (t of [0,1,2,3,4,5,6,7]; track t) { <span>{{ t * 4 }}s</span> }
+      </div>
+      <div class="deck__lanes">
+        <div class="lane"><span class="lane__tag">Voz</span><app-waveform [count]="72" [seed]="11" [animated]="true" /></div>
+        <div class="lane"><span class="lane__tag">Guitarra</span><app-waveform [count]="72" [seed]="41" [animated]="true" /></div>
+        <div class="lane"><span class="lane__tag">Batería</span><app-waveform [count]="72" [seed]="97" [animated]="true" /></div>
+      </div>
+      <span class="deck__playhead"></span>
+    </div>
+  </section>
+
+  <section class="flow">
+    <h2>De la pista cruda a la mezcla final</h2>
+    <ol class="flow__steps">
+      @for (step of steps; track step.n) {
+        <li class="flow__step">
+          <span class="flow__n tnum">{{ step.n }}</span>
+          <h3>{{ step.title }}</h3>
+          <p>{{ step.body }}</p>
+        </li>
+      }
+    </ol>
+  </section>
+
+  <section class="engine">
+    <div class="engine__head">
+      <h2>Un motor real detrás de cada corte</h2>
+      <p>
+        No es un reproductor con filtros. El grafo del proyecto —pistas, clips,
+        efectos, ganancia y paneo— se compila entero y se ejecuta en el servidor.
+      </p>
+    </div>
+    <ul class="engine__list" role="list">
+      @for (item of engine; track item) {
+        <li><app-icon name="check" [size]="16" /><span>{{ item }}</span></li>
+      }
+    </ul>
+  </section>
+
+  <section class="pricing" id="planes">
+    <div class="pricing__head">
+      <h2>Un plan para cada etapa</h2>
+      <p>Cambia de plan cuando quieras. El cambio se aplica al instante en esta versión.</p>
+    </div>
+
+    @switch (plansState()) {
+      @case ('loading') {
+        <div class="pricing__status"><app-spinner [size]="22" /> Cargando planes…</div>
+      }
+      @case ('error') {
+        <div class="pricing__status">
+          No se pudo cargar el catálogo. Comprueba que la API está en marcha e inténtalo de nuevo.
+        </div>
+      }
+      @case ('ready') {
+        <div class="plans">
+          @for (plan of plans(); track plan.tier) {
+            <article class="plan" [class.plan--featured]="isFeatured(plan)">
+              @if (isFeatured(plan)) { <span class="plan__flag">Más elegido</span> }
+              <h3>{{ plan.name }}</h3>
+              <p class="plan__price">
+                <strong>{{ price(plan) }}</strong>
+                @if (plan.priceCents > 0) { <span>/ mes</span> }
+              </p>
+              <p class="plan__desc">{{ plan.description }}</p>
+              <a [routerLink]="ctaTarget()" class="btn btn--block" [class.btn--primary]="isFeatured(plan)" [class.btn--ghost]="!isFeatured(plan)">
+                {{ plan.priceCents === 0 ? 'Empezar gratis' : 'Elegir ' + plan.name }}
+              </a>
+              <dl class="plan__lines">
+                @for (line of lines(plan); track line.label) {
+                  <div><dt>{{ line.label }}</dt><dd class="tnum">{{ line.value }}</dd></div>
+                }
+              </dl>
+            </article>
+          }
+        </div>
+      }
+    }
+  </section>
+
+  <footer class="foot">
+    <a routerLink="/" class="wordmark">
+      <span class="wordmark__mark"><app-icon name="wave" [size]="16" /></span>
+      Auralis
+    </a>
+    <p>© {{ year }} Auralis. Proyecto de portfolio — edición de audio SaaS.</p>
+    <nav>
+      <a href="#planes">Planes</a>
+      <a routerLink="/login">Entrar</a>
+    </nav>
+  </footer>
+</div>

@@ -1,0 +1,47 @@
+<div class="shell">
+  <aside class="rail">
+    <a routerLink="/app/dashboard" class="brand" aria-label="Auralis, inicio">
+      <span class="brand__mark"><app-icon name="wave" [size]="20" /></span>
+      <span class="brand__word">Auralis</span>
+    </a>
+
+    <nav class="rail__nav" aria-label="Principal">
+      @for (item of nav(); track item.path) {
+        <a
+          [routerLink]="item.path"
+          routerLinkActive="is-active"
+          class="rail__link"
+        >
+          <app-icon [name]="item.icon" [size]="18" />
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    </nav>
+
+    <div class="rail__foot">
+      <a routerLink="/app/settings" class="account">
+        <span class="account__avatar" aria-hidden="true">{{ initials() }}</span>
+        <span class="account__meta">
+          <span class="account__name">{{ user()?.displayName || 'Tu cuenta' }}</span>
+          <span class="account__mail">{{ user()?.email }}</span>
+        </span>
+      </a>
+      <button type="button" class="account__out" (click)="logout()" aria-label="Cerrar sesión">
+        <app-icon name="logout" [size]="17" />
+      </button>
+    </div>
+  </aside>
+
+  <main class="stage">
+    <router-outlet />
+  </main>
+
+  <nav class="tabbar" aria-label="Principal">
+    @for (item of nav(); track item.path) {
+      <a [routerLink]="item.path" routerLinkActive="is-active" class="tabbar__link">
+        <app-icon [name]="item.icon" [size]="20" />
+        <span>{{ item.label }}</span>
+      </a>
+    }
+  </nav>
+</div>

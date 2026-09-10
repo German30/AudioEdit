@@ -1,0 +1,100 @@
+<app-page-header heading="Plan y uso" sub="Tu suscripción, tus límites y lo que llevas consumido este periodo." />
+
+@switch (state()) {
+  @case ('loading') {
+    <div class="loading"><app-spinner [size]="22" /> Cargando tu plan…</div>
+  }
+  @case ('error') {
+    <div class="panel error-box">
+      <p>No se pudo cargar tu suscripción.</p>
+      <button type="button" class="btn btn--ghost" (click)="load()">Reintentar</button>
+    </div>
+  }
+  @case ('ready') {
+    <div class="layout">
+      <section class="panel current">
+        <div class="current__head">
+          <h2>Plan {{ sub()!.tier }}</h2>
+          <span class="chip" [class]="statusClass(sub()!.status)">{{ statusLabel(sub()!.status) }}</span>
+        </div>
+
+        @if (sub()!.cancelAtPeriodEnd) {
+          <div class="notice">
+            <app-icon name="alert" [size]="16" />
+            <div>
+              <p>Tu plan termina el {{ date(sub()!.currentPeriodEnd) }} y pasará a Free.</p>
+              <button type="button" class="btn btn--ghost" [disabled]="canceling()" (click)="reactivate()">
+                Reactivar
+              </button>
+            </div>
+          </div>
+        } @else if (sub()!.currentPeriodEnd) {
+          <p class="current__renew">Se renueva el {{ date(sub()!.currentPeriodEnd) }}.</p>
+        } @else {
+          <p class="current__renew">Sin fecha de renovación — plan gratuito.</p>
+        }
+
+        <div class="meters">
+          <app-usage-meter
+            label="Minutos de render"
+            [used]="renderMinutes().used"
+            [limit]="renderMinutes().limit"
+            [valueText]="renderMinutes().text"
+          />
+          <app-usage-meter
+            label="Almacenamiento"
+            [used]="storage().used"
+            [limit]="storage().limit"
+            [valueText]="storage().text"
+          />
+        </div>
+
+        @if (sub()!.tier !== 'FREE' && !sub()!.cancelAtPeriodEnd) {
+          <button type="button" class="btn btn--danger current__cancel" [disabled]="canceling()" (click)="cancel()">
+            @if (canceling()) { <app-spinner [size]="14" /> } Cancelar plan
+          </button>
+        }
+      </section>
+
+      <section class="plans">
+        <h2>Cambiar de plan</h2>
+        <p class="plans__hint">El cambio se aplica al instante en esta versión.</p>
+        <div class="plans__grid">
+          @for (plan of plans(); track plan.tier) {
+            <article class="plan" [class.plan--current]="isCurrent(plan.tier)">
+              <div class="plan__head">
+                <h3>{{ plan.name }}</h3>
+                @if (isCurrent(plan.tier)) { <span class="chip chip--accent">Tu plan</span> }
+              </div>
+              <p class="plan__price">
+                <strong>{{ price(plan) }}</strong>
+                @if (plan.priceCents > 0) { <span>/ mes</span> }
+              </p>
+              <dl class="plan__lines">
+                @for (line of planLines(plan); track line.label) {
+                  <div><dt>{{ line.label }}</dt><dd class="tnum">{{ line.value }}</dd></div>
+                }
+              </dl>
+              <button
+                type="button"
+                class="btn btn--block"
+                [class.btn--primary]="!isCurrent(plan.tier)"
+                [class.btn--ghost]="isCurrent(plan.tier)"
+                [disabled]="isCurrent(plan.tier) || pendingTier() !== null"
+                (click)="changePlan(plan.tier)"
+              >
+                @if (pendingTier() === plan.tier) {
+                  <app-spinner [size]="14" /> Cambiando…
+                } @else if (isCurrent(plan.tier)) {
+                  Plan actual
+                } @else {
+                  Cambiar a {{ plan.name }}
+                }
+              </button>
+            </article>
+          }
+        </div>
+      </section>
+    </div>
+  }
+}

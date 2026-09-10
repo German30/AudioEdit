@@ -1,0 +1,74 @@
+<div class="auth">
+  <aside class="brand" aria-hidden="true">
+    <a routerLink="/" class="brand__word">
+      <span class="brand__mark"><app-icon name="wave" [size]="18" /></span>
+      Auralis
+    </a>
+    <div class="brand__wave"><app-waveform [count]="48" [seed]="23" [animated]="true" /></div>
+    <p class="brand__line">Tu estudio de edición no destructiva, listo en cuanto entras.</p>
+  </aside>
+
+  <main class="form-side">
+    <div class="form-card">
+      <a routerLink="/" class="form-card__back">
+        <app-icon name="chevron-right" [size]="14" /> Volver al inicio
+      </a>
+      <h1>Entrar en Auralis</h1>
+      <p class="sub">Usa el acceso de desarrollo o continúa con un proveedor.</p>
+
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <div class="field">
+          <label for="email">Correo</label>
+          <input
+            id="email"
+            class="input"
+            type="email"
+            formControlName="email"
+            autocomplete="email"
+            placeholder="tu@correo.com"
+            [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid"
+          />
+          @if (form.controls.email.touched && form.controls.email.invalid) {
+            <span class="field__error">Introduce un correo válido.</span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="name">Nombre para mostrar <span class="opt">opcional</span></label>
+          <input
+            id="name"
+            class="input"
+            type="text"
+            formControlName="displayName"
+            autocomplete="name"
+            placeholder="Cómo aparecerás en los proyectos"
+          />
+        </div>
+
+        @if (error()) {
+          <p class="form-error"><app-icon name="alert" [size]="15" /> {{ error() }}</p>
+        }
+
+        <button type="submit" class="btn btn--primary btn--block btn--lg" [disabled]="submitting()">
+          @if (submitting()) { <app-spinner [size]="16" /> Entrando… } @else { Entrar }
+        </button>
+      </form>
+
+      @if (providers().length) {
+        <div class="divider"><span>o continúa con</span></div>
+        <div class="providers">
+          @for (p of providers(); track p.id) {
+            <button type="button" class="btn btn--ghost" (click)="startOAuth(p)">
+              <app-icon [name]="p.id === 'github' ? 'github' : 'google'" [size]="17" />
+              {{ providerLabel(p.id) }}
+            </button>
+          }
+        </div>
+      }
+
+      <p class="fine">
+        Al entrar aceptas que esto es un proyecto de portfolio y los datos pueden borrarse en cualquier momento.
+      </p>
+    </div>
+  </main>
+</div>

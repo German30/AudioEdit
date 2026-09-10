@@ -1,0 +1,122 @@
+<app-page-header
+  heading="Biblioteca"
+  sub="Tus archivos de audio subidos. Auralis analiza duración, sample rate y forma de onda al completarse la subida."
+>
+  <label class="btn btn--primary upload-btn">
+    <app-icon name="upload" [size]="16" /> Subir audio
+    <input type="file" accept="audio/*,.wav,.mp3,.flac,.aac,.ogg" multiple hidden (change)="onPick($event)" />
+  </label>
+</app-page-header>
+
+@if (uploads().length) {
+  <ul class="uploads" role="list">
+    @for (u of uploads(); track u.id) {
+      <li class="upload" [class.upload--error]="u.phase === 'error'">
+        <div class="upload__row">
+          <span class="upload__name">{{ u.filename }}</span>
+          <span class="upload__state">
+            @switch (u.phase) {
+              @case ('uploading') { {{ u.progress }}% }
+              @case ('analyzing') { <app-spinner [size]="13" /> Analizando }
+              @case ('error') { {{ u.error }} }
+            }
+          </span>
+        </div>
+        @if (u.phase !== 'error') {
+          <div class="upload__track">
+            <div class="upload__fill" [style.width.%]="u.phase === 'analyzing' ? 100 : u.progress"></div>
+          </div>
+        }
+      </li>
+    }
+  </ul>
+}
+
+@switch (state()) {
+  @case ('loading') {
+    <div class="loading"><app-spinner [size]="22" /> Cargando biblioteca…</div>
+  }
+  @case ('error') {
+    <div class="panel error-box">
+      <p>No se pudo cargar la biblioteca.</p>
+      <button type="button" class="btn btn--ghost" (click)="load()">Reintentar</button>
+    </div>
+  }
+  @case ('ready') {
+    @if (assets().length === 0 && uploads().length === 0) {
+      <div class="panel">
+        <app-empty-state
+          icon="folder"
+          heading="Tu biblioteca está vacía"
+          message="Sube un WAV, MP3 o FLAC para usarlo como clip en cualquier proyecto."
+        >
+          <label class="btn btn--primary upload-btn">
+            <app-icon name="upload" [size]="16" /> Subir audio
+            <input type="file" accept="audio/*" multiple hidden (change)="onPick($event)" />
+          </label>
+        </app-empty-state>
+      </div>
+    } @else {
+      <div class="panel table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Archivo</th>
+              <th>Estado</th>
+              <th class="num">Duración</th>
+              <th class="num">Formato</th>
+              <th class="num">Tamaño</th>
+              <th class="num">Subido</th>
+              <th aria-label="Acciones"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (a of assets(); track a.id) {
+              <tr>
+                <td class="file">
+                  <span class="file__glyph"><app-icon name="wave" [size]="16" /></span>
+                  <span class="file__name">{{ a.originalFilename }}</span>
+                </td>
+                <td>
+                  <span class="chip" [class]="statusChip(a.status).cls">{{ statusChip(a.status).label }}</span>
+                  @if (a.status === 'FAILED' && a.failureReason) {
+                    <span class="file__reason">{{ a.failureReason }}</span>
+                  }
+                </td>
+                <td class="num tnum">{{ dur(a.durationSeconds) }}</td>
+                <td class="num tnum">
+                  {{ a.codec || '—' }}@if (a.sampleRate) { · {{ (a.sampleRate / 1000) | number: '1.0-1' }} kHz }
+                  @if (a.channels) { · {{ a.channels === 1 ? 'mono' : a.channels === 2 ? 'estéreo' : a.channels + 'ch' }} }
+                </td>
+                <td class="num tnum">{{ bytes(a.sizeBytes) }}</td>
+                <td class="num">{{ rel(a.createdAt) }}</td>
+                <td class="actions">
+                  <button
+                    type="button"
+                    class="icon-btn"
+                    (click)="download(a)"
+                    [disabled]="busyId() === a.id || a.status !== 'READY'"
+                    aria-label="Descargar"
+                    title="Descargar original"
+                  >
+                    <app-icon name="download" [size]="16" />
+                  </button>
+                  <button
+                    type="button"
+                    class="icon-btn icon-btn--danger"
+                    (click)="remove(a)"
+                    [disabled]="busyId() === a.id"
+                    aria-label="Eliminar"
+                    title="Eliminar asset"
+                  >
+                    <app-icon name="trash" [size]="16" />
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+}

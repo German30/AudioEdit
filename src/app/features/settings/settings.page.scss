@@ -1,0 +1,81 @@
+:host {
+  display: block;
+  max-width: 920px;
+}
+
+.cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.card {
+  padding: 1.5rem;
+}
+.card h2 {
+  font-size: var(--step-1);
+  margin-bottom: 1.25rem;
+}
+.card .field + .field {
+  margin-top: 1rem;
+}
+.opt {
+  color: var(--text-mute);
+  font-weight: 400;
+}
+.card__error {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 1rem;
+  color: var(--danger);
+  font-size: var(--step--1);
+}
+.card__actions {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.facts {
+  display: flex;
+  flex-direction: column;
+}
+.facts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0;
+  border-top: 1px solid var(--line);
+  font-size: var(--step--1);
+}
+.facts > div:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+.facts dt {
+  color: var(--text-mute);
+}
+.facts dd {
+  color: var(--text);
+  text-align: right;
+  word-break: break-word;
+}
+
+.danger p {
+  color: var(--text-dim);
+  font-size: var(--step--1);
+  margin-bottom: 1.1rem;
+}
+
+@media (max-width: 820px) {
+  .cols {
+    grid-template-columns: 1fr;
+  }
+}

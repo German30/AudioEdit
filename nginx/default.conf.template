@@ -1,0 +1,80 @@
+# Auralis frontend vhost.
+#
+# This image is fully standalone: it ships only the built SPA and proxies API
+# traffic to a backend that lives somewhere else (its own server, another
+# compose project, a Kubernetes service, a public URL...).
+#
+#   ${BACKEND_ORIGIN}  full origin of the API, e.g. https://api.auralis.example
+#                      or http://host.docker.internal:8080 for local testing
+#   ${RESOLVER}        DNS server nginx uses to look that host up at request
+#                      time (127.0.0.11 = Docker's embedded DNS)
+#
+# Both are substituted at container start. Using a variable in proxy_pass +
+# a resolver means nginx starts even when the backend is down or not yet
+# resolvable, and picks up DNS changes without a reload.
+
+server {
+    listen       4200;
+    server_name  _;
+    root         /usr/share/nginx/html;
+    index        index.html;
+
+    server_tokens off;
+    resolver ${RESOLVER} ipv6=off valid=30s;
+
+    # --- compression --------------------------------------------------------
+    gzip              on;
+    gzip_vary         on;
+    gzip_min_length   1024;
+    gzip_proxied      any;
+    gzip_types        text/plain text/css application/javascript application/json
+                      image/svg+xml application/manifest+json font/ttf font/woff2;
+
+    # --- container healthcheck (never proxied) -------------------------------
+    location = /healthz {
+        access_log off;
+        add_header Content-Type text/plain;
+        return 200 "ok\n";
+    }
+
+    # --- backend proxy ----------------------------------------------------
+    # API, OAuth2 login start + provider callback, Swagger, actuator health.
+    location ~ ^/(api|oauth2|login/oauth2|v3/api-docs|swagger-ui|actuator/health)(/|$) {
+        set                     $upstream "${BACKEND_ORIGIN}";
+        proxy_pass              $upstream$request_uri;
+        proxy_http_version      1.1;
+        proxy_set_header        Host              $host;
+        proxy_set_header        X-Real-IP         $remote_addr;
+        proxy_set_header        X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header        X-Forwarded-Proto $scheme;
+        proxy_set_header        X-Forwarded-Host  $host;
+        proxy_set_header        X-Forwarded-Port  $server_port;
+        proxy_set_header        Upgrade           $http_upgrade;
+        proxy_set_header        Connection        "";
+        proxy_connect_timeout   5s;
+        proxy_read_timeout      120s;
+        # Uploads go straight to object storage via presigned URLs; this covers
+        # render polling and large listings.
+        client_max_body_size    25m;
+    }
+
+    # --- static assets --------------------------------------------------
+    # The production build content-hashes every js/css/font/image filename
+    # (outputHashing: all), so they are safe to cache hard and forever.
+    location ~* \.(?:js|mjs|css|woff2?|ttf|eot|otf|png|jpe?g|gif|svg|ico|webp|avif|map)$ {
+        expires    1y;
+        add_header Cache-Control "public, immutable";
+        access_log off;
+        try_files  $uri =404;
+    }
+
+    # --- SPA shell ----------------------------------------------------
+    location / {
+        add_header Cache-Control "no-cache";
+        try_files  $uri $uri/ /index.html;
+    }
+
+    location = /index.html {
+        add_header Cache-Control "no-cache";
+    }
+}

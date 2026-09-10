@@ -1,0 +1,218 @@
+@switch (state()) {
+  @case ('loading') {
+    <div class="loading"><app-spinner [size]="24" /> Abriendo el proyecto…</div>
+  }
+  @case ('error') {
+    <div class="panel error-box">
+      <p>No se pudo abrir este proyecto. Puede que no exista o que no tengas acceso.</p>
+      <div class="error-box__row">
+        <a routerLink="/app/dashboard" class="btn btn--ghost">Volver a proyectos</a>
+        <button type="button" class="btn btn--quiet" (click)="load()">Reintentar</button>
+      </div>
+    </div>
+  }
+  @case ('ready') {
+    <header class="transport">
+      <div class="transport__id">
+        <a routerLink="/app/dashboard" class="back" aria-label="Volver a proyectos">
+          <app-icon name="chevron-right" [size]="16" />
+        </a>
+        <div>
+          <h1>{{ project()!.name }}</h1>
+          <div class="transport__facts tnum">
+            <span>{{ graph()!.sampleRate }} Hz</span>
+            <span>{{ project()!.tempoBpm ? project()!.tempoBpm + ' BPM' : 'sin tempo' }}</span>
+            <span>master {{ graph()!.masterGainDb.toFixed(1) }} dB</span>
+            <span>{{ dur(totalDuration()) }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="transport__actions">
+        <button type="button" class="btn btn--ghost" [disabled]="savingVersion()" (click)="saveVersion()">
+          @if (savingVersion()) { <app-spinner [size]="14" /> } @else { <app-icon name="clock" [size]="15" /> }
+          Guardar versión
+        </button>
+        <button type="button" class="btn btn--primary" (click)="showExport.set(!showExport())">
+          <app-icon name="download" [size]="15" /> Exportar
+        </button>
+      </div>
+    </header>
+
+    <p class="readonly-note">
+      <app-icon name="alert" [size]="14" />
+      La línea de tiempo es de solo lectura en esta versión. La edición de clips y efectos llega pronto;
+      el guardado de versiones y el export ya funcionan.
+    </p>
+
+    @if (showExport()) {
+      <section class="panel export">
+        <h2>Exportar mezcla</h2>
+        <div class="export__grid">
+          <label class="field">
+            <span>Formato</span>
+            <select class="input" [value]="form().format" (change)="updateForm('format', $any($event.target).value)">
+              <option value="mp3">MP3</option>
+              <option value="wav">WAV</option>
+              <option value="flac">FLAC</option>
+              <option value="aac">AAC</option>
+              <option value="ogg">OGG</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Bitrate — {{ form().bitrateKbps }} kbps</span>
+            <input
+              type="range"
+              min="64"
+              max="320"
+              step="32"
+              [value]="form().bitrateKbps"
+              (input)="updateForm('bitrateKbps', +$any($event.target).value)"
+            />
+          </label>
+          <label class="check">
+            <input
+              type="checkbox"
+              [checked]="form().includeStems"
+              (change)="updateForm('includeStems', $any($event.target).checked)"
+            />
+            <span>Incluir stems por pista</span>
+          </label>
+        </div>
+        <div class="export__actions">
+          <button type="button" class="btn btn--quiet" (click)="showExport.set(false)">Cerrar</button>
+          <button type="button" class="btn btn--primary" [disabled]="enqueuing()" (click)="enqueueRender()">
+            @if (enqueuing()) { <app-spinner [size]="14" /> Encolando… } @else { Encolar export }
+          </button>
+        </div>
+      </section>
+    }
+
+    <div class="board">
+      <section class="timeline panel">
+        <div class="ruler tnum">
+          @for (mark of ruler(); track mark) {
+            <span class="ruler__mark" [style.left.%]="(mark / totalDuration()) * 100">{{ mark }}s</span>
+          }
+        </div>
+
+        @if (graph()!.tracks.length === 0) {
+          <div class="timeline__empty">
+            <app-icon name="layers" [size]="22" />
+            <p>Este proyecto todavía no tiene pistas.</p>
+          </div>
+        } @else {
+          <ul class="lanes" role="list">
+            @for (track of graph()!.tracks; track track.id) {
+              <li class="lane">
+                <div class="lane__head">
+                  <span class="lane__name">{{ track.name }}</span>
+                  <span class="lane__flags">
+                    @if (track.muted) { <span class="flag">M</span> }
+                    @if (track.soloed) { <span class="flag flag--solo">S</span> }
+                    <span class="lane__gain tnum">{{ track.gainDb.toFixed(1) }} dB</span>
+                  </span>
+                </div>
+                <div class="lane__track">
+                  @for (clip of track.clips; track clip.id) {
+                    <div class="clip" [style]="clipStyle(clip.timelineStartSeconds, clip.durationSeconds)">
+                      <span class="clip__name">{{ clip.assetFilename }}</span>
+                      <app-waveform class="clip__wave" [count]="28" [seed]="clip.durationSeconds * 7 + 3" />
+                      @if (clip.effects.length) {
+                        <span class="clip__fx">{{ clip.effects.length }} fx</span>
+                      }
+                    </div>
+                  }
+                  @if (track.clips.length === 0) {
+                    <span class="lane__empty">sin clips</span>
+                  }
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
+      <aside class="rail">
+        <section class="panel rail__card">
+          <h2>Efectos del master</h2>
+          @if (graph()!.masterEffects.length === 0) {
+            <p class="rail__muted">Sin efectos en el bus master.</p>
+          } @else {
+            <ul role="list" class="fx-list">
+              @for (fx of graph()!.masterEffects; track fx.id) {
+                <li>
+                  <span class="fx-list__type">{{ fx.type }}</span>
+                  <span class="chip" [class.chip--accent]="fx.enabled">{{ fx.enabled ? 'on' : 'off' }}</span>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+
+        <section class="panel rail__card">
+          <h2>Versiones</h2>
+          @if (versions().length === 0) {
+            <p class="rail__muted">Aún no has guardado ninguna versión.</p>
+          } @else {
+            <ul role="list" class="ver-list">
+              @for (v of versions(); track v.id) {
+                <li>
+                  <div>
+                    <span class="ver-list__rev tnum">r{{ v.revision }}</span>
+                    <span class="ver-list__label">{{ v.label || 'sin etiqueta' }}</span>
+                    <span class="ver-list__date">{{ date(v.createdAt) }}</span>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn btn--quiet btn--sm"
+                    [disabled]="restoringId() === v.id"
+                    (click)="restore(v)"
+                  >
+                    @if (restoringId() === v.id) { <app-spinner [size]="12" /> } @else { Restaurar }
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+
+        <section class="panel rail__card">
+          <h2>Renders</h2>
+          @if (renders().length === 0) {
+            <p class="rail__muted">Sin exports todavía.</p>
+          } @else {
+            <ul role="list" class="job-list">
+              @for (job of renders(); track job.id) {
+                <li>
+                  <div class="job-list__row">
+                    <span class="chip" [class]="renderChip(job.status)">{{ job.status }}</span>
+                    <span class="job-list__fmt tnum">{{ job.format }} · {{ job.bitrateKbps }}k</span>
+                  </div>
+                  @if (job.status === 'RUNNING' || job.status === 'QUEUED') {
+                    <div class="job-list__bar"><span [style.width.%]="job.progress"></span></div>
+                    <button type="button" class="btn btn--quiet btn--sm" (click)="cancelRender(job)">Cancelar</button>
+                  }
+                  @if (job.status === 'FAILED' && job.errorMessage) {
+                    <p class="job-list__err">{{ job.errorMessage }}</p>
+                  }
+                  @if (job.hasOutput) {
+                    <div class="job-list__dl">
+                      <button type="button" class="btn btn--ghost btn--sm" (click)="download(job, false)">
+                        <app-icon name="download" [size]="13" /> Mezcla
+                      </button>
+                      @if (job.hasStems) {
+                        <button type="button" class="btn btn--ghost btn--sm" (click)="download(job, true)">
+                          <app-icon name="layers" [size]="13" /> Stems
+                        </button>
+                      }
+                    </div>
+                  }
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      </aside>
+    </div>
+  }
+}

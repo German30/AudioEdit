@@ -1,0 +1,62 @@
+<app-page-header heading="Administración" sub="Usuarios de la plataforma. Habilita o deshabilita cuentas y ajusta su rol." />
+
+@switch (state()) {
+  @case ('loading') {
+    <div class="loading"><app-spinner [size]="22" /> Cargando usuarios…</div>
+  }
+  @case ('error') {
+    <div class="panel error-box">
+      <p>No se pudo cargar la lista de usuarios.</p>
+      <button type="button" class="btn btn--ghost" (click)="load()">Reintentar</button>
+    </div>
+  }
+  @case ('ready') {
+    <div class="panel table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Proveedor</th>
+            <th>Alta</th>
+            <th>Rol</th>
+            <th>Activa</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (u of users(); track u.id) {
+            <tr [class.is-busy]="busyId() === u.id">
+              <td>
+                <span class="u-name">{{ u.displayName }}</span>
+                <span class="u-mail">{{ u.email }}</span>
+              </td>
+              <td>{{ u.provider }}</td>
+              <td>{{ date(u.createdAt) }}</td>
+              <td>
+                <select
+                  class="input select"
+                  [value]="u.role"
+                  [disabled]="busyId() === u.id"
+                  (change)="changeRole(u, $any($event.target).value)"
+                >
+                  <option value="USER">Usuario</option>
+                  <option value="ADMIN">Administrador</option>
+                </select>
+              </td>
+              <td>
+                <label class="switch">
+                  <input
+                    type="checkbox"
+                    [checked]="u.enabled !== false"
+                    [disabled]="busyId() === u.id"
+                    (change)="toggleEnabled(u, $any($event.target).checked)"
+                  />
+                  <span class="switch__track"></span>
+                </label>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+}

@@ -1,0 +1,51 @@
+<app-page-header heading="Ajustes" sub="Tu perfil y la seguridad de la cuenta." />
+
+<div class="cols">
+  <form class="panel card" [formGroup]="form" (ngSubmit)="save()" novalidate>
+    <h2>Perfil</h2>
+
+    <div class="field">
+      <label for="dn">Nombre para mostrar</label>
+      <input id="dn" class="input" type="text" formControlName="displayName" autocomplete="name" />
+      @if (form.controls.displayName.touched && form.controls.displayName.invalid) {
+        <span class="field__error">Escribe un nombre (1–120 caracteres).</span>
+      }
+    </div>
+
+    <div class="field">
+      <label for="av">URL del avatar <span class="opt">opcional</span></label>
+      <input id="av" class="input" type="url" formControlName="avatarUrl" placeholder="https://…" />
+      <span class="field__hint">Se usa como imagen de tu cuenta en los proyectos.</span>
+    </div>
+
+    @if (error()) {
+      <p class="card__error"><app-icon name="alert" [size]="15" /> {{ error() }}</p>
+    }
+
+    <div class="card__actions">
+      <button type="submit" class="btn btn--primary" [disabled]="saving() || form.pristine">
+        @if (saving()) { <app-spinner [size]="14" /> Guardando… } @else { Guardar cambios }
+      </button>
+    </div>
+  </form>
+
+  <div class="side">
+    <section class="panel card">
+      <h2>Cuenta</h2>
+      <dl class="facts">
+        <div><dt>Correo</dt><dd>{{ user()?.email }}</dd></div>
+        <div><dt>Método de acceso</dt><dd>{{ providerLabel() }}</dd></div>
+        <div><dt>Rol</dt><dd>{{ user()?.role === 'ADMIN' ? 'Administrador' : 'Usuario' }}</dd></div>
+        <div><dt>Miembro desde</dt><dd>{{ date(user()?.createdAt) }}</dd></div>
+      </dl>
+    </section>
+
+    <section class="panel card danger">
+      <h2>Sesiones</h2>
+      <p>Si crees que alguien más tiene acceso, cierra la sesión en todos los dispositivos.</p>
+      <button type="button" class="btn btn--danger" [disabled]="loggingOutAll()" (click)="logoutEverywhere()">
+        @if (loggingOutAll()) { <app-spinner [size]="14" /> } Cerrar todas las sesiones
+      </button>
+    </section>
+  </div>
+</div>

@@ -1,0 +1,79 @@
+<app-page-header heading="Proyectos" sub="Cada proyecto es un arreglo no destructivo: pistas, clips y efectos sobre tus assets.">
+  @if (state() === 'ready') {
+    <button type="button" class="btn btn--primary" (click)="toggleCreate(!creating())">
+      <app-icon name="plus" [size]="16" /> Nuevo proyecto
+    </button>
+  }
+</app-page-header>
+
+@if (creating()) {
+  <form class="panel create" [formGroup]="form" (ngSubmit)="create()" novalidate>
+    <div class="field">
+      <label for="pname">Nombre</label>
+      <input id="pname" class="input" type="text" formControlName="name" placeholder="Ej. EP — mezcla v1" />
+      @if (form.controls.name.touched && form.controls.name.invalid) {
+        <span class="field__error">Ponle un nombre (máx. 140 caracteres).</span>
+      }
+    </div>
+    <div class="field">
+      <label for="pdesc">Descripción <span class="opt">opcional</span></label>
+      <input id="pdesc" class="input" type="text" formControlName="description" placeholder="Notas de la sesión" />
+    </div>
+    @if (formError()) {
+      <p class="create__error"><app-icon name="alert" [size]="15" /> {{ formError() }}</p>
+    }
+    <div class="create__actions">
+      <button type="button" class="btn btn--quiet" (click)="toggleCreate(false)">Cancelar</button>
+      <button type="submit" class="btn btn--primary" [disabled]="saving()">
+        @if (saving()) { <app-spinner [size]="15" /> Creando… } @else { Crear y abrir }
+      </button>
+    </div>
+  </form>
+}
+
+@switch (state()) {
+  @case ('loading') {
+    <div class="loading"><app-spinner [size]="22" /> Cargando proyectos…</div>
+  }
+  @case ('error') {
+    <div class="panel error-box">
+      <p>No se pudieron cargar los proyectos.</p>
+      <button type="button" class="btn btn--ghost" (click)="load()">Reintentar</button>
+    </div>
+  }
+  @case ('ready') {
+    @if (projects().length === 0) {
+      <div class="panel">
+        <app-empty-state
+          icon="layers"
+          heading="Aún no tienes proyectos"
+          message="Crea el primero para empezar a colocar clips en la línea de tiempo."
+        >
+          <button type="button" class="btn btn--primary" (click)="toggleCreate(true)">
+            <app-icon name="plus" [size]="16" /> Nuevo proyecto
+          </button>
+        </app-empty-state>
+      </div>
+    } @else {
+      <ul class="grid" role="list">
+        @for (p of projects(); track p.id) {
+          <li>
+            <button type="button" class="card" (click)="open(p)">
+              <div class="card__top">
+                <h3>{{ p.name }}</h3>
+                @if (p.archived) { <span class="chip chip--warn">Archivado</span> }
+              </div>
+              <p class="card__desc">{{ p.description || 'Sin descripción' }}</p>
+              <dl class="card__meta">
+                <div><dt>Sample rate</dt><dd class="tnum">{{ p.sampleRate }} Hz</dd></div>
+                <div><dt>Tempo</dt><dd class="tnum">{{ p.tempoBpm ? p.tempoBpm + ' BPM' : '—' }}</dd></div>
+                <div><dt>Editado</dt><dd>{{ rel(p.updatedAt) }}</dd></div>
+              </dl>
+              <span class="card__go"><app-icon name="arrow-right" [size]="16" /></span>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  }
+}
