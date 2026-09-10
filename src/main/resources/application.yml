@@ -1,0 +1,99 @@
+spring:
+  application:
+    name: auralis-backend
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:auralis}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:root123}
+    hikari:
+      maximum-pool-size: 10
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      # Prod relies on Flyway; the dev profile switches this to "update".
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+        format_sql: false
+        # Store java.util.UUID as CHAR(36) instead of BINARY(16) so ids are
+        # readable in the DB and match the Flyway DDL.
+        type.preferred_uuid_jdbc_type: CHAR
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+  servlet:
+    multipart:
+      max-file-size: 512MB
+      max-request-size: 512MB
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:changeme}
+            client-secret: ${GOOGLE_CLIENT_SECRET:changeme}
+            scope: [openid, profile, email]
+          github:
+            client-id: ${GITHUB_CLIENT_ID:changeme}
+            client-secret: ${GITHUB_CLIENT_SECRET:changeme}
+            scope: [read:user, user:email]
+
+# ---- Application-specific configuration -------------------------------------
+auralis:
+  auth:
+    jwt:
+      # Base64-encoded HMAC secret. Override in every real environment.
+      secret: ${JWT_SECRET:c2VjcmV0LWRldi1vbmx5LWNoYW5nZS1tZS1wbGVhc2UtMzJieXRlcyEhMTIzNA==}
+      issuer: https://api.auralis.local
+      access-token-ttl: PT15M
+      refresh-token-ttl: P30D
+    # Where the SPA lives; OAuth2 login redirects back here with the tokens.
+    frontend-redirect-uri: ${FRONTEND_REDIRECT_URI:http://localhost:5173/oauth/callback}
+    cors-allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:3000}
+
+  storage:
+    endpoint: ${S3_ENDPOINT:http://localhost:9000}
+    region: ${S3_REGION:us-east-1}
+    access-key: ${S3_ACCESS_KEY:minioadmin}
+    secret-key: ${S3_SECRET_KEY:minioadmin}
+    bucket: ${S3_BUCKET:auralis-media}
+    # MinIO needs path-style; real S3 does not.
+    path-style-access: ${S3_PATH_STYLE:true}
+    presign-ttl: PT15M
+
+  media:
+    ffmpeg-path: ${FFMPEG_PATH:ffmpeg}
+    ffprobe-path: ${FFPROBE_PATH:ffprobe}
+    work-dir: ${MEDIA_WORK_DIR:${java.io.tmpdir}/auralis-render}
+    waveform-peaks: 2000
+
+  render:
+    worker-threads: 2
+    poll-interval: PT5S
+    max-attempts: 3
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  default-produces-media-type: application/json
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: [health, info, metrics]
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    com.auralis: DEBUG
