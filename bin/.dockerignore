@@ -1,0 +1,4 @@
+# Keep the build context minimal: only what Maven needs to build.
+*
+!pom.xml
+!src

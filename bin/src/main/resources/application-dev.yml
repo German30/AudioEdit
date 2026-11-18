@@ -1,0 +1,28 @@
+spring:
+  # The API is a service in compose.yaml, so DON'T let spring-boot-docker-compose
+  # auto-start the stack here - it would launch a second API on :8080 that
+  # clashes with `mvn spring-boot:run`. Start the infra yourself for the dev loop:
+  #   docker compose up -d mysql minio minio-init
+  docker-compose:
+    enabled: false
+
+  datasource:
+    # Dev runs against the compose MySQL, published on host port 3307.
+    url: jdbc:mysql://localhost:3307/auralis?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+
+  # In dev, let Hibernate own the schema so the app always boots against a fresh
+  # database. Flyway stays off here; prod uses Flyway + ddl-auto=validate.
+  flyway:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+
+# In dev we allow the app to boot even without real OAuth providers configured:
+# the /api/v1/auth/dev-login endpoint (DevAuthController) is enabled instead.
+auralis:
+  auth:
+    dev-login-enabled: true
